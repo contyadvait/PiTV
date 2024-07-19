@@ -1,59 +1,79 @@
-from PIL import Image
-import customtkinter
-import tkinter.font as tkFont
-from ctypes import windll, byref, create_unicode_buffer, create_string_buffer
+import sys
+from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel, QHBoxLayout, QVBoxLayout, QWidget
+from PyQt6.QtGui import QPixmap, QIcon, QFont
+from PyQt6.QtCore import Qt
 
-FR_PRIVATE  = 0x10
-FR_NOT_ENUM = 0x20
+class PiTV(QMainWindow):
+    def __init__(self):
+        super().__init__()
 
-def loadfont(fontpath, private=True, enumerable=False):
-    '''
-    Makes fonts located in file `fontpath` available to the font system.
+        self.setWindowTitle('PiTV')
+        self.setGeometry(100, 100, 800, 450)
 
-    `private`     if True, other processes cannot see this font, and this
-                  font will be unloaded when the process dies
-    `enumerable`  if True, this font will appear when enumerating fonts
+        # Set up the central widget and layout
+        self.central_widget = QWidget(self)
+        self.setCentralWidget(self.central_widget)
+        self.layout = QVBoxLayout(self.central_widget)
 
-    See https://msdn.microsoft.com/en-us/library/dd183327(VS.85).aspx
+        # Set background image
+        self.set_background_image('wallpaper.png')
 
-    '''
-    # This function was taken from
-    # https://github.com/ifwe/digsby/blob/f5fe00244744aa131e07f09348d10563f3d8fa99/digsby/src/gui/native/win/winfonts.py#L15
-    # This function is written for Python 2.x. For 3.x, you
-    # have to convert the isinstance checks to bytes and str
-    if isinstance(fontpath, str):
-        pathbuf = create_string_buffer(fontpath)
-        AddFontResourceEx = windll.gdi32.AddFontResourceExA
-    elif isinstance(fontpath, unicode):
-        pathbuf = create_unicode_buffer(fontpath)
-        AddFontResourceEx = windll.gdi32.AddFontResourceExW
-    else:
-        raise TypeError('fontpath must be of type str or unicode')
+        # Set up "Welcome to PiTV!" text
+        self.setup_welcome_text()
 
-    flags = (FR_PRIVATE if private else 0) | (FR_NOT_ENUM if not enumerable else 0)
-    numFontsAdded = AddFontResourceEx(byref(pathbuf), flags, 0)
-    return bool(numFontsAdded)
+        # Set up buttons
+        self.setup_buttons()
 
+    def set_background_image(self, image_path):
+        self.background_label = QLabel(self)
+        self.background_label.setPixmap(QPixmap(image_path))
+        self.background_label.setScaledContents(True)
+        self.background_label.setGeometry(0, 0, self.width(), self.height())
+        self.background_label.lower()  # Send the label to the back
 
-customtkinter.set_appearance_mode("System")  # Modes: system (default), light, dark
-customtkinter.set_default_color_theme("blue")  # Themes: blue (default), dark-blue, green
+    def setup_welcome_text(self):
+        self.welcome_label = QLabel("Welcome to PiTV!", self)
+        self.welcome_label.setFont(QFont('Arial', 24))
+        self.welcome_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.layout.addWidget(self.welcome_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
-app = customtkinter.CTk()  # create CTk window like you do with the Tk window
-app.geometry("720x480")
+    def setup_buttons(self):
+        button_layout = QHBoxLayout()
 
-def button_function():
-    print("button pressed")
+        button_data = [
+            ('YouTube', 'youtube.png'),
+            ('ExpressVPN', 'vpn.png'),
+            ('Firefox', 'firefox.png'),
+            ('Netflix', 'netflix.png')
+        ]
 
-my_image = customtkinter.CTkImage(light_image=Image.open("wallpaper.png"),
-                                  dark_image=Image.open("wallpaper.png"),
-                                  size=(1920, 1080))
+        for name, icon in button_data:
+            button = QPushButton(name, self)
+            button.setIcon(QIcon(icon))
+            button.setIconSize(QPixmap(icon).rect().size())
+            button.setFixedSize(100, 100)
+            button.clicked.connect(lambda _, n=name: self.button_clicked(n))
+            button_layout.addWidget(button)
 
-image_label = customtkinter.CTkLabel(app, image=my_image, text="")
-image_label.place(relx=0.5, rely=0.5, anchor=customtkinter.CENTER)
+        self.layout.addLayout(button_layout)
+        power_button = QPushButton(self)
+        power_button.setIcon(QIcon('power.png'))
+        power_button.setIconSize(QPixmap('power.png').rect().size())
+        power_button.setFixedSize(40, 40)
+        power_button.clicked.connect(lambda: self.button_clicked('Power'))
+        screen_button = QPushButton(self)
+        screen_button.setIcon(QIcon('screen.png'))
+        screen_button.setIconSize(QPixmap('screen.png').rect().size())
+        screen_button.setFixedSize(40, 40)
+        screen_button.clicked.connect(lambda: self.button_clicked('Screen'))
+        power_button.move(10, 10)
+        screen_button.move(60, 10)
 
-font = tkFont.Font(family=load_font("Urbanist.ttf"))
-text = customtkinter.CTkLabel(app, text="Welcome to PiTV!", font=(font, 48))
-text.configure(text_color="white", bg_color="black")
-text.place(relx=0.5, rely=0.5, anchor=customtkinter.CENTER)
+    def button_clicked(self, name):
+        print(f'{name} button clicked')
 
-app.mainloop()
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    main_window = PiTV()
+    main_window.show()
+    sys.exit(app.exec())
